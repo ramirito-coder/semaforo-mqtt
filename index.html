@@ -15,13 +15,13 @@
         .btn-amarillo { background-color: #e6b800; color: black; }
         .btn-verde { background-color: #00cc66; }
         .btn:hover { opacity: 0.8; }
-        #status-conexion { color: gray; font-size: 15px; }
+        #status-conexion { color: gray; font-size: 15px; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <h1>Control Global de Semáforo MQTT</h1>
-    <p id="status-conexion">Conectando al servidor MQTT...</p>
+    <p id="status-conexion">Conectando al servidor MQTT seguro...</p>
 
     <div class="estado-box">
         Estado del Semáforo: <span id="estado-valor" style="color: #0056b3;">Sincronizando...</span>
@@ -35,26 +35,30 @@
 
     <script>
         const brokerHost = "broker.hivemq.com";
-        const brokerPort = 8000; // Puerto WebSocket público
+        const brokerPort = 8884; // Puerto WebSocket Seguro (WSS)
+        const path = "/mqtt";
         const clientId = "Web_Control_Ramiro_" + Math.random().toString(16).substr(2, 6);
 
         const topicComando = "ramiro/semaforo/comando";
         const topicEstado = "ramiro/semaforo/estado";
 
-        const client = new Paho.MQTT.Client(brokerHost, brokerPort, clientId);
+        const client = new Paho.MQTT.Client(brokerHost, brokerPort, path, clientId);
 
         client.onConnectionLost = onConnectionLost;
         client.onMessageArrived = onMessageArrived;
 
+        // Conexión cifrada SSL/TLS
         client.connect({
+            useSSL: true,
             onSuccess: onConnect,
             onFailure: function(err) {
                 document.getElementById("status-conexion").innerText = "Error de conexión: " + err.errorMessage;
+                document.getElementById("status-conexion").style.color = "red";
             }
         });
 
         function onConnect() {
-            document.getElementById("status-conexion").innerText = "● Conectado a la nube MQTT";
+            document.getElementById("status-conexion").innerText = "● Conectado a la nube MQTT (Seguro)";
             document.getElementById("status-conexion").style.color = "green";
             client.subscribe(topicEstado);
         }
