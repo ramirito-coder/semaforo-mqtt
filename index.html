@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Remoto Semáforo MQTT Global</title>
+    <!-- Librería MQTT Paho over WebSockets -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background-color: #f4f4f4; padding-top: 50px; }
+        h1 { color: #333; }
+        .estado-box { font-size: 22px; margin: 25px 0; font-weight: bold; }
+        .btn { display: inline-block; padding: 15px 35px; font-size: 18px; margin: 10px; border: none; border-radius: 8px; cursor: pointer; color: white; text-decoration: none; font-weight: bold; }
+        .btn-rojo { background-color: #ff4d4d; }
+        .btn-amarillo { background-color: #e6b800; color: black; }
+        .btn-verde { background-color: #00cc66; }
+        .btn:hover { opacity: 0.8; }
+        #status-conexion { color: gray; font-size: 15px; }
+    </style>
+</head>
+<body>
+
+    <h1>Control Global de Semáforo MQTT</h1>
+    <p id="status-conexion">Conectando al servidor MQTT...</p>
+
+    <div class="estado-box">
+        Estado del Semáforo: <span id="estado-valor" style="color: #0056b3;">Sincronizando...</span>
+    </div>
+
+    <div>
+        <button onclick="enviarComando('ROJO')" class="btn btn-rojo">Rojo</button>
+        <button onclick="enviarComando('AMARILLO')" class="btn btn-amarillo">Amarillo</button>
+        <button onclick="enviarComando('VERDE')" class="btn btn-verde">Verde</button>
+    </div>
+
+    <script>
+        const brokerHost = "broker.hivemq.com";
+        const brokerPort = 8000; // Puerto WebSocket público
+        const clientId = "Web_Control_Ramiro_" + Math.random().toString(16).substr(2, 6);
+
+        const topicComando = "ramiro/semaforo/comando";
+        const topicEstado = "ramiro/semaforo/estado";
+
+        const client = new Paho.MQTT.Client(brokerHost, brokerPort, clientId);
+
+        client.onConnectionLost = onConnectionLost;
+        client.onMessageArrived = onMessageArrived;
+
+        client.connect({
+            onSuccess: onConnect,
+            onFailure: function(err) {
+                document.getElementById("status-conexion").innerText = "Error de conexión: " + err.errorMessage;
+            }
+        });
+
+        function onConnect() {
+            document.getElementById("status-conexion").innerText = "● Conectado a la nube MQTT";
+            document.getElementById("status-conexion").style.color = "green";
+            client.subscribe(topicEstado);
+        }
+
+        function onConnectionLost(responseObject) {
+            if (responseObject.errorCode !== 0) {
+                document.getElementById("status-conexion").innerText = "● Conexión perdida. Reconectando...";
+                document.getElementById("status-conexion").style.color = "red";
+            }
+        }
+
+        function onMessageArrived(message) {
+            if (message.destinationName === topicEstado) {
+                document.getElementById("estado-valor").innerText = message.payloadString;
+            }
+        }
+
+        function enviarComando(color) {
+            const message = new Paho.MQTT.Message(color);
+            message.destinationName = topicComando;
+            client.send(message);
+        }
+    </script>
+</body>
+</html>
